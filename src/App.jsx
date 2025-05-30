@@ -13,6 +13,8 @@ import BlogPostForm from "./components/BlogPostForm/BlogPostForm";
 import DeleteButton from "./components/DeleteButton/DeleteButton";
 import ConfirmationDialog from "./components/ConfirmationDialog/ConfirmationDialog";
 import Layout from "./components/Layout/Layout"; // ✅ NEW
+import CommentForm from "./components/CommentForm/CommentForm";
+import CommentList from "./components/CommentList/CommentList";
 
 const initialPosts = [
   {
@@ -75,12 +77,13 @@ const stripHtml = (html) => {
   return tmp.textContent || tmp.innerText || "";
 };
 
-const PostsPage = ({ posts }) => {
+const PostsPage = ({ posts, comments }) => {
   const navigate = useNavigate();
   return (
     <div>
       <BlogPostList posts={posts} onSelect={(id) => navigate(`/posts/${id}`)} />
-    </div>
+      
+      </div>
   );
 };
 
@@ -90,10 +93,38 @@ const PostPage = ({ posts, setPosts }) => {
   const post = posts.find((p) => p.id === id);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const [comments, setComments] = useState([
+    {
+      postId: "1",
+      name: "Alice",
+      text: "Great introduction to React!",
+      date: "2023-12-25T14:45:00Z",
+    },
+    {   
+      postId: "2",
+      name: "Bob",
+      text: "CSS Grid helped me structure my layout perfectly.",
+      date: "2024-01-05T09:30:00Z",
+    },
+    {
+      postId: "3",
+      name: "Charlie",
+      text: "Accessibility is crucial for inclusive web design.",
+      date: "2024-02-10T11:20:00Z",
+    },
+  ]);
+
   const handleDelete = () => {
     const updatedPosts = posts.filter((p) => p.id !== id);
     setPosts(updatedPosts);
     navigate("/posts");
+  };
+
+  const handleAddComment = (comment) => {
+    setComments((prev) => [
+      ...prev,
+      { ...comment, postId: id, date: Date.now().toString() },
+    ]);
   };
 
   if (!post) return <p>Blog post not found.</p>;
@@ -119,7 +150,7 @@ const PostPage = ({ posts, setPosts }) => {
       >
         Edit Post
       </button>
-
+        
       <BlogPostDetail {...post} />
 
       <div style={{ marginTop: "30px", textAlign: "center" }}>
@@ -131,7 +162,19 @@ const PostPage = ({ posts, setPosts }) => {
         onClose={() => setIsDialogOpen(false)}
         onConfirm={handleDelete}
       />
+    
+    <div style={{ marginTop: "40px" }}>
+      <h3>Comments</h3>
+      <CommentList
+       comments={comments.filter((comment) => comment.postId === id)} />
+      <CommentForm
+        onSubmit={handleAddComment}
+        isLoggedIn={false} // Change to true if you want to simulate a logged-in user
+        userName=""
+      />
     </div>
+  </div>
+
   );
 };
 
@@ -163,11 +206,16 @@ const EditPost = ({ posts, onUpdate }) => {
 
 const App = () => {
   const [posts, setPosts] = useState(initialPosts);
+  const [comments, setComments] = useState([
+  
+  ]);
 
   const handleCreatePost = (newPost) => {
     const newId = (posts.length + 1).toString();
     const summary = stripHtml(newPost.content).slice(0, 60) + "...";
-    setPosts([...posts, { ...newPost, id: newId, summary }]);
+    const updated = [...posts, { ...newPost, id: newId, summary }];
+    setPosts(updated);
+    setFilteredPosts(updated);
   };
 
   const handleUpdatePost = (id, updatedPost) => {
@@ -181,6 +229,7 @@ const App = () => {
         : p
     );
     setPosts(updatedPosts);
+    setFilteredPosts(updatedPosts);
   };
 
   return (
@@ -190,14 +239,14 @@ const App = () => {
           <h2 style={{ textAlign: "center", marginTop: "20px" }}>Blog Posts</h2>
 
           <Routes>
-            <Route path="/posts" element={<PostsPage posts={posts} />} />
+            <Route path="/posts" element={<PostsPage posts={posts} comments={comments}/>} />
             <Route
               path="/posts/new"
               element={<CreatePost onCreate={handleCreatePost} />}
             />
             <Route
               path="/posts/:id"
-              element={<PostPage posts={posts} setPosts={setPosts} />}
+              element={<PostPage posts={posts} setPosts={setPosts} comments={comments}/>}
             />
             <Route
               path="/posts/:id/edit"
